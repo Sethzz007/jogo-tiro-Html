@@ -131,6 +131,8 @@
     <div class="joystick-thumb" id="joystick-thumb"></div>
   </div>
 
+<div id="kills" style="position:fixed;top:50px;left:10px;color:white;font-size:20px;z-index:10;">Kills: 0</div>
+
   <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
   <script>
     // --- HUD ---
@@ -192,6 +194,7 @@ arma.add(cano);
     let vida = 100,
       maxVida = 100,
       gameOver = false;
+      let kills = 0;
 
     // --- Inimigos múltiplos com respawn ---
     const NUM_INIMIGOS = 4;
@@ -372,26 +375,32 @@ bala.position.copy(cano.getWorldPosition(new THREE.Vector3()));
         yawObject.rotation.y = player.rotY;
 
         // Inimigos (perseguem/respawn)
-        for (let i = 0; i < inimigos.length; i++) {
-          let inimigo = inimigos[i];
-          if (inimigo.userData.morto) continue;
-          let dx = player.x - inimigo.position.x;
-          let dz = player.z - inimigo.position.z;
-          let dist = Math.sqrt(dx * dx + dz * dz);
-          if (dist > 1.3) {
-            inimigo.position.x += (dx / dist) * 0.055;
-            inimigo.position.z += (dz / dist) * 0.055;
-          }
-          if (dist < 1.25) {
-            vida -= 0.6;
-            if (vida < 0) vida = 0;
-            atualizarHUD();
-            if (vida <= 0 && !gameOver) {
-              gameOver = true;
-              msg.textContent = "Game Over!";
-            }
-          }
-        }
+        const INTERVALO_ATAQUE = 800; // milissegundos, exemplo: 0.8 segundo
+
+for (let i = 0; i < inimigos.length; i++) {
+  let inimigo = inimigos[i];
+  if (inimigo.userData.morto) continue;
+  let dx = player.x - inimigo.position.x;
+  let dz = player.z - inimigo.position.z;
+  let dist = Math.sqrt(dx * dx + dz * dz);
+  if (dist > 1.3) {
+    inimigo.position.x += (dx / dist) * 0.055;
+    inimigo.position.z += (dz / dist) * 0.055;
+  }
+  if (dist < 1.25) {
+    let agora = Date.now();
+    if (!inimigo.userData.ultimoAtaque || agora - inimigo.userData.ultimoAtaque > INTERVALO_ATAQUE) {
+      vida -= 35; // Dano por ataque, ajuste como quiser
+      if (vida < 0) vida = 0;
+      atualizarHUD();
+      inimigo.userData.ultimoAtaque = agora;
+      if (vida <= 0 && !gameOver) {
+        gameOver = true;
+        msg.textContent = "Game Over!";
+      }
+    }
+  }
+}
 
         // Balas: mover e detectar colisão
 for (let i = balas.length - 1; i >= 0; i--) {
@@ -410,6 +419,9 @@ for (let i = balas.length - 1; i >= 0; i--) {
         inimigo.userData.morto = true;
         scene.remove(inimigo);
         respawnInimigo(inimigo);
+        kills++;
+document.getElementById("kills").textContent = "Kills: " + kills;
+
       }
       scene.remove(b); // Remove a bala
       balas.splice(i, 1);
