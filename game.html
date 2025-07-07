@@ -151,6 +151,19 @@
       0.1,
       100
     );
+    // Dentro do código onde você cria a arma
+let arma = new THREE.Mesh(
+  new THREE.BoxGeometry(0.18, 0.22, 1.2),
+  new THREE.MeshPhongMaterial({ color: 0x888888 })
+);
+arma.position.set(0.3, -0.25, -0.7);
+camera.add(arma);
+
+// Cria um objeto vazio para representar o cano na ponta da arma
+let cano = new THREE.Object3D();
+cano.position.set(0, 0, -0.65); // z = metade do comprimento negativo
+arma.add(cano);
+
     let pitchObject = new THREE.Object3D();
     pitchObject.add(camera);
     let yawObject = new THREE.Object3D();
@@ -229,8 +242,8 @@
     new THREE.SphereGeometry(0.13, 12, 12),
     new THREE.MeshBasicMaterial({ color: 0xffff00 })
   );
-  camera.updateMatrixWorld(); // importante!
-  bala.position.copy(camera.getWorldPosition(new THREE.Vector3()));
+  cano.updateMatrixWorld();
+bala.position.copy(cano.getWorldPosition(new THREE.Vector3()));
   bala.userData = { dir: dir.clone(), tempo: 0 };
   scene.add(bala);
   balas.push(bala);
