@@ -156,7 +156,7 @@
     // Dentro do código onde você cria a arma
 let arma = new THREE.Mesh(
   new THREE.BoxGeometry(0.18, 0.22, 1.2),
-  new THREE.MeshPhongMaterial({ color: 0x888888 })
+  new THREE.MeshPhongMaterial({ color: 0xCC4444 })
 );
 arma.position.set(0.3, -0.25, -0.7);
 camera.add(arma);
@@ -183,14 +183,14 @@ arma.add(cano);
     luz.position.set(0, 10, 0);
     scene.add(luz);
     let chao = new THREE.Mesh(
-      new THREE.PlaneGeometry(30, 30),
-      new THREE.MeshPhongMaterial({ color: 0x3e3e3e })
+      new THREE.PlaneGeometry(70, 70),
+      new THREE.MeshPhongMaterial({ color: 0x228B22 })
     );
     chao.rotation.x = -Math.PI / 2;
     scene.add(chao);
 
     // --- Player ---
-    let player = { x: 0, y: 1.6, z: 8, rotY: 0, rotX: 0, velocidade: 0.13 };
+    let player = { x: 0, y: 1.6, z: 8, rotY: 0, rotX: 0, velocidade: 0.15 };
     let vida = 100,
       maxVida = 100,
       gameOver = false;
@@ -203,8 +203,17 @@ arma.add(cano);
     function spawnInimigo() {
       let i = new THREE.Mesh(
         new THREE.BoxGeometry(1, 2, 1),
-        new THREE.MeshLambertMaterial({ color: 0xff2222 })
+        new THREE.MeshLambertMaterial({ color: 0xcc66ff })
       );
+      // Barra de vida: largura 1, altura 0.15, profundidade 0.2
+let barraVida = new THREE.Mesh(
+  new THREE.BoxGeometry(1, 0.15, 0.2),
+  new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+);
+barraVida.position.set(0, 1.2, 0); // acima da cabeça do inimigo
+i.add(barraVida);
+i.userData.barraVida = barraVida;
+      
       // Posição aleatória no mapa, não muito perto do player
       let px, pz, dist;
       do {
@@ -215,8 +224,16 @@ arma.add(cano);
       i.position.set(px, 1, pz);
       i.userData.vida = 30;
       i.userData.morto = false;
-      scene.add(i);
-      inimigos.push(i);
+      
+      // Resetar a barrinha de vida do inimigo ao respawnar
+i.userData.vida = 30;
+if (i.userData.barraVida) {
+  i.userData.barraVida.scale.x = 1;
+  i.userData.barraVida.position.x = 0;
+  i.userData.barraVida.material.color.set(0x00ff00);
+}
+scene.add(i);
+inimigos.push(i);
     }
     for (let n = 0; n < NUM_INIMIGOS; n++) spawnInimigo();
 
@@ -243,7 +260,7 @@ arma.add(cano);
   camera.getWorldDirection(dir);
   let bala = new THREE.Mesh(
     new THREE.SphereGeometry(0.13, 12, 12),
-    new THREE.MeshBasicMaterial({ color: 0xffff00 })
+    new THREE.MeshBasicMaterial({ color: 0xffa500 })
   );
   cano.updateMatrixWorld();
 bala.position.copy(cano.getWorldPosition(new THREE.Vector3()));
@@ -375,7 +392,7 @@ bala.position.copy(cano.getWorldPosition(new THREE.Vector3()));
         yawObject.rotation.y = player.rotY;
 
         // Inimigos (perseguem/respawn)
-        const INTERVALO_ATAQUE = 580; // milissegundos, exemplo: 0.5 segundo
+        const INTERVALO_ATAQUE = 800; // milissegundos
 
 for (let i = 0; i < inimigos.length; i++) {
   let inimigo = inimigos[i];
@@ -390,7 +407,7 @@ for (let i = 0; i < inimigos.length; i++) {
   if (dist < 1.25) {
     let agora = Date.now();
     if (!inimigo.userData.ultimoAtaque || agora - inimigo.userData.ultimoAtaque > INTERVALO_ATAQUE) {
-      vida -= 35; // Dano por ataque, ajuste como quiser
+      vida -= 50; // Dano por ataque, ajuste como quiser
       if (vida < 0) vida = 0;
       atualizarHUD();
       inimigo.userData.ultimoAtaque = agora;
@@ -414,18 +431,29 @@ for (let i = balas.length - 1; i >= 0; i--) {
       inimigo.userData.vida > 0 &&
       b.position.distanceTo(inimigo.position) < 1.1
     ) {
-      inimigo.userData.vida -= 15; // Dano por tiro
-      if (inimigo.userData.vida <= 0) {
-        inimigo.userData.morto = true;
-        scene.remove(inimigo);
-        respawnInimigo(inimigo);
-        kills++;
-document.getElementById("kills").textContent = "Kills: " + kills;
+      inimigo.userData.vida -= 12; // Dano por tiro
 
-      }
-      scene.remove(b); // Remove a bala
-      balas.splice(i, 1);
-      break;
+// Atualize a barrinha de vida do inimigo
+let pct = inimigo.userData.vida / 30;
+pct = Math.max(0, Math.min(1, pct));
+if (inimigo.userData.barraVida) {
+  inimigo.userData.barraVida.scale.x = pct;
+  inimigo.userData.barraVida.position.x = (pct - 1) * 0.5;
+  inimigo.userData.barraVida.material.color.set(
+    pct > 0.5 ? 0x00ff00 : (pct > 0.2 ? 0xffff00 : 0xff0000)
+  );
+}
+
+if (inimigo.userData.vida <= 0) {
+  inimigo.userData.morto = true;
+  scene.remove(inimigo);
+  respawnInimigo(inimigo);
+  kills++;
+  document.getElementById("kills").textContent = "Kills: " + kills;
+}
+scene.remove(b); // Remove a bala
+balas.splice(i, 1);
+break;
     }
   }
   if (
